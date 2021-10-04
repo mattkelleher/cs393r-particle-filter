@@ -127,6 +127,35 @@ void ParticleFilter::Update(const vector<float>& ranges,
 }
 
 void ParticleFilter::Resample() {
+//  float cummulative_weight [50];
+//  vector<Particle> new_particles;
+//  int index_counter1 = 0;
+//  for(Particle i: particles_){
+//    if(index_counter1 == 0){
+//      cumulative_weight[index_counter] = i.weight;
+//    } else {
+//      cumulative_weight[index_counter] = i.weight + cumulative_weight[index_counter-1];
+//    }
+//    index_count1 ++; 
+//  }
+//  for(Particle i : particles_){
+//    float x = rng_.UniformRandom(0, 1);
+//    float rand;
+//    //not sure about the normalized weight
+//    rand = x * cumulative_weight[49];
+//    int index_counter2 = 0;
+//    for(float j : cumulative_weight){
+//      if(rand <= j){
+//	break;
+//      }
+//      index_counter2 ++;
+//    }
+//    new_particles.push_back(particles_[index_counter2];
+//  }
+//  particles_ = new_particle_filter;
+//  for(Particle i : particles_){
+//    i.weight = 1/50;
+//  }
   // Resample the particles, proportional to their weights.
   // The current particles are in the `particles_` variable. 
   // Create a variable to store the new particles, and when done, replace the
