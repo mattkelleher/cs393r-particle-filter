@@ -220,7 +220,14 @@ void ParticleFilter::Initialize(const string& map_file,
   map_.Load(map_file);
   for(int i = 0; i < num_particles_; i++) {  // TODO most basic initalization, all particles start on top of 'initalized' location
     Particle p;
-    p.loc = loc;
+    //following are the randomized loc and angle, picking random points in the circle that is centered at the p.loc
+    //float radius_rand = rng_.UniformRandom(0, 1);
+    //float angle_rand = rng_.UniformRandom(0, 1);
+    //p.loc.x = loc.x + radius * cos(angle_rand * 2 * PI);
+    //p.loc.y = loc.y + radius * sin(angle_rand * 2 * PI);
+    p.loc = loc.x;
+    //float angle = rng_.UniformRandom(0, 1);
+    //p.angle = 2 * PI * angle;
     p.angle = angle;
     p.weight = 0.0;
     particles_.push_back(p);
