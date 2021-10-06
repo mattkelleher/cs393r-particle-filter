@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /u/ruthwang/cs393r-particle-filter/build/devel/setup.sh
