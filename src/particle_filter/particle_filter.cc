@@ -225,7 +225,7 @@ void ParticleFilter::Initialize(const string& map_file,
     //float angle_rand = rng_.UniformRandom(0, 1);
     //p.loc.x = loc.x + radius * cos(angle_rand * 2 * PI);
     //p.loc.y = loc.y + radius * sin(angle_rand * 2 * PI);
-    p.loc = loc.x;
+    p.loc = loc;
     //float angle = rng_.UniformRandom(0, 1);
     //p.angle = 2 * PI * angle;
     p.angle = angle;
