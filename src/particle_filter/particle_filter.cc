@@ -150,7 +150,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
     particle_filter_.GetPredictedPointCloud(
         p_ptr.loc,
         p_ptr.angle,
-        ranges.size(),
+        ranges.size(), 
         range_min,
         range_max,
         angle_min,
