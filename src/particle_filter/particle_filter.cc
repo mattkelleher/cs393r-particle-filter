@@ -143,11 +143,13 @@ void ParticleFilter::Resample() {
     }
     index_counter1 ++; 
   }
-  for(Particle i : particles_){
-    float x = rng_.UniformRandom(0, 1);
-    float rand;
-    //not sure about the normalized weight
-    rand = x * cumulative_weight[num_particles_ - 1];
+  
+  float rand = rng_.UniformRandom(0, 1);
+  for(int i = 0; i < num_particles_; i++){
+    rand = rand + i / num_particles_;
+    if(rand > 1) {
+      rand = rand - 1;
+    } 
     int index_counter2 = 0;
     for(float j : cumulative_weight){
       if(rand <= j){
@@ -158,8 +160,8 @@ void ParticleFilter::Resample() {
     new_particles.push_back(particles_[index_counter2]);
   }
   particles_ = new_particles;
-  for(int i = 0; i < 50; i = i + 1){
-    particles_[i].weight = 1/50;
+  for(int i = 0; i < num_particles_; i = i + 1){
+    particles_[i].weight = 1.0/num_particles_;
   }
 }
 
@@ -176,7 +178,8 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   for(auto p : particles_) {
     Update(ranges, range_min, range_max, angle_min, angle_max, &p);
   }
-  
+  update_count_++;
+
   if(update_count_ == resample_frequency) {
     update_count_ = 0;
     Resample();
@@ -229,7 +232,7 @@ void ParticleFilter::Initialize(const string& map_file,
     //float angle = rng_.UniformRandom(0, 1);
     //p.angle = 2 * PI * angle;
     p.angle = angle;
-    p.weight = 0.0;
+    p.weight = 1.0 / num_particles_;
     particles_.push_back(p);
   }
 }
@@ -242,8 +245,18 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // Compute the best estimate of the robot's location based on the current set
   // of particles. The computed values must be set to the `loc` and `angle`
   // variables to return them. Modify the following assignments:
-  loc = Vector2f(0, 0);
-  angle = 0;
+  float x = 0;
+  float y = 0;
+  float temp_angle = 0;
+ 
+  for(auto p : particles_) {
+    x = x + p.weight * p.loc.x();
+    y = y + p.weight * p.loc.y();
+    temp_angle = temp_angle + p.weight * p.angle; 
+  } 
+
+  loc = Vector2f(x, y);
+  angle = temp_angle;
 }
 
 
