@@ -55,7 +55,9 @@ config_reader::ConfigReader config_reader_({"config/particle_filter.lua"});
 ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
-    odom_initialized_(false) {}
+    odom_initialized_(false),
+    num_particles_(50), //TODO tune
+    update_count_(0) {}
 
 float Navigation::_Distance(Vector2f p1, Vector2f p2) {
   return sqrt(pow(p1.x() - p2.x(), 2) + pow(p1.y() - p2.y(), 2));
@@ -64,6 +66,7 @@ float Navigation::_Distance(Vector2f p1, Vector2f p2) {
 void ParticleFilter::GetParticles(vector<Particle>* particles) const {
   *particles = particles_;
 }
+
 
 void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             const float angle,
@@ -182,22 +185,40 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
 }
 
 void ParticleFilter::Resample() {
-  // Resample the particles, proportional to their weights.
-  // The current particles are in the `particles_` variable. 
-  // Create a variable to store the new particles, and when done, replace the
-  // old set of particles:
-  // vector<Particle> new_particles';
-  // During resampling: 
-  //    new_particles.push_back(...)
-  // After resampling:
-  // particles_ = new_particles;
+  float cumulative_weight [num_particles_];
+  vector<Particle> new_particles;
+  int index_counter1 = 0;
 
-  // You will need to use the uniform random number generator provided. For
-  // example, to generate a random number between 0 and 1:
-  float x = rng_.UniformRandom(0, 1);
-  printf("Random number drawn from uniform distribution between 0 and 1: %f\n",
-         x);
+  for(Particle i: particles_){
+    if(index_counter1 == 0){
+      cumulative_weight[index_counter1] = i.weight;
+    } else {
+      cumulative_weight[index_counter1] = i.weight + cumulative_weight[index_counter1-1];
+    }
+    index_counter1 ++; 
+  }
+  
+  float rand = rng_.UniformRandom(0, 1);
+  for(int i = 0; i < num_particles_; i++){
+    rand = rand + i / num_particles_;
+    if(rand > 1) {
+      rand = rand - 1;
+    } 
+    int index_counter2 = 0;
+    for(float j : cumulative_weight){
+      if(rand <= j){
+	break;
+      }
+      index_counter2 ++;
+    }
+    new_particles.push_back(particles_[index_counter2]);
+  }
+  particles_ = new_particles;
+  for(int i = 0; i < num_particles_; i = i + 1){
+    particles_[i].weight = 1.0/num_particles_;
+  }
 }
+
 
 void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float range_min,
@@ -206,7 +227,19 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
+  int resample_frequency = 10;  //TODO tune
+
+  for(auto p : particles_) {
+    Update(ranges, range_min, range_max, angle_min, angle_max, &p);
+  }
+  update_count_++;
+
+  if(update_count_ == resample_frequency) {
+    update_count_ = 0;
+    Resample();
+  } 
 }
+
 
 void ParticleFilter::Predict(const Vector2f& odom_loc,
                              const float odom_angle) {
@@ -214,15 +247,26 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // A new odometry value is available (in the odom frame)
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
+  float k1 = 1;  //TODO tune
+  float k2 = 0.5;
+  float k3 = 0.5; 
+  float k4 = 1;
 
+  Vector2f delta_loc  = odom_loc - prev_odom_loc_;
+  float delta_angle = odom_angle - prev_odom_angle_;
+  float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
+  float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
 
-  // You will need to use the Gaussian random number generator provided. For
-  // example, to generate a random number from a Gaussian with mean 0, and
-  // standard deviation 2:
-  float x = rng_.Gaussian(0.0, 2.0);
-  printf("Random number drawn from Gaussian distribution with 0 mean and "
-         "standard deviation of 2 : %f\n", x);
+  prev_odom_loc_ = odom_loc;
+  prev_odom_angle_ = odom_angle;
+  
+  for(auto p : particles_) {
+    p.loc.x() = p.loc.x() + delta_loc.x() + rng_.Gaussian(0.0, std_loc);
+    p.loc.y() = p.loc.y() + delta_loc.y() + rng_.Gaussian(0.0, std_loc);
+    p.angle = p.angle + delta_angle + rng_.Gaussian(0.0, std_angle);
+  }
 }
+
 
 void ParticleFilter::Initialize(const string& map_file,
                                 const Vector2f& loc,
@@ -231,7 +275,22 @@ void ParticleFilter::Initialize(const string& map_file,
   // was received from the log. Initialize the particles accordingly, e.g. with
   // some distribution around the provided location and angle.
   map_.Load(map_file);
+  for(int i = 0; i < num_particles_; i++) {  // TODO most basic initalization, all particles start on top of 'initalized' location
+    Particle p;
+    //following are the randomized loc and angle, picking random points in the circle that is centered at the p.loc
+    //float radius_rand = rng_.UniformRandom(0, 1);
+    //float angle_rand = rng_.UniformRandom(0, 1);
+    //p.loc.x = loc.x + radius * cos(angle_rand * 2 * PI);
+    //p.loc.y = loc.y + radius * sin(angle_rand * 2 * PI);
+    p.loc = loc;
+    //float angle = rng_.UniformRandom(0, 1);
+    //p.angle = 2 * PI * angle;
+    p.angle = angle;
+    p.weight = 1.0 / num_particles_;
+    particles_.push_back(p);
+  }
 }
+
 
 void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr, 
                                  float* angle_ptr) const {
@@ -240,8 +299,18 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // Compute the best estimate of the robot's location based on the current set
   // of particles. The computed values must be set to the `loc` and `angle`
   // variables to return them. Modify the following assignments:
-  loc = Vector2f(0, 0);
-  angle = 0;
+  float x = 0;
+  float y = 0;
+  float temp_angle = 0;
+ 
+  for(auto p : particles_) {
+    x = x + p.weight * p.loc.x();
+    y = y + p.weight * p.loc.y();
+    temp_angle = temp_angle + p.weight * p.angle; 
+  } 
+
+  loc = Vector2f(x, y);
+  angle = temp_angle;
 }
 
 

@@ -102,6 +102,11 @@ class ParticleFilter {
   Eigen::Vector2f prev_odom_loc_;
   float prev_odom_angle_;
   bool odom_initialized_;
+
+  // Number of particles in particle cloud
+  int num_particles_;
+  // Number of updates since last resample
+  int update_count_;
 };
 }  // namespace slam
 
