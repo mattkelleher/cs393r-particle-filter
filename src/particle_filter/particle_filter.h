@@ -105,6 +105,8 @@ class ParticleFilter {
 
   // Number of particles in particle cloud
   int num_particles_;
+  // Number of updates since last resample
+  int update_count_;
 };
 }  // namespace slam
 

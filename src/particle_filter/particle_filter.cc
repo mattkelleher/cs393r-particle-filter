@@ -56,7 +56,8 @@ ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
     odom_initialized_(false),
-    num_particles_(100) {}
+    num_particles_(100),
+    update_count_(0) {}
 
 void ParticleFilter::GetParticles(vector<Particle>* particles) const {
   *particles = particles_;
@@ -181,6 +182,16 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
+  int resample_frequency = 10;
+
+  for(auto p : particles_) {
+    Update(ranges, range_min, range_max, angle_min, angle_max, &p);
+  }
+  
+  if(update_count_ == resample_frequency) {
+    update_count_ = 0;
+    Resample();
+  } 
 }
 
 void ParticleFilter::Predict(const Vector2f& odom_loc,
@@ -216,6 +227,13 @@ void ParticleFilter::Initialize(const string& map_file,
   // was received from the log. Initialize the particles accordingly, e.g. with
   // some distribution around the provided location and angle.
   map_.Load(map_file);
+  for(int i = 0; i < num_particles_; i++) {  // TODO most basic initalization, all particles start on top of 'initalized' location
+    Particle p;
+    p.loc = loc;
+    p.angle = angle;
+    p.weight = 0.0;
+    particles_.push_back(p);
+  }
 }
 
 void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr, 
