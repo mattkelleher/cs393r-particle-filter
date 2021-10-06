@@ -63,6 +63,7 @@ void ParticleFilter::GetParticles(vector<Particle>* particles) const {
   *particles = particles_;
 }
 
+
 void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             const float angle,
                                             int num_ranges,
@@ -115,6 +116,7 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   }
 }
 
+
 void ParticleFilter::Update(const vector<float>& ranges,
                             float range_min,
                             float range_max,
@@ -129,24 +131,25 @@ void ParticleFilter::Update(const vector<float>& ranges,
 }
 
 void ParticleFilter::Resample() {
-  float cummulative_weight [50];
+  float cumulative_weight [50];
   vector<Particle> new_particles;
   int index_counter1 = 0;
+
   for(Particle i: particles_){
     if(index_counter1 == 0){
-      cummulative_weight[index_counter1] = i.weight;
+      cumulative_weight[index_counter1] = i.weight;
     } else {
-      cummulative_weight[index_counter1] = i.weight + cummulative_weight[index_counter1-1];
+      cumulative_weight[index_counter1] = i.weight + cumulative_weight[index_counter1-1];
     }
     index_counter1 ++; 
   }
-  for(int a = 0; a < 50; a = a + 1){
+  for(Particle i : particles_){
     float x = rng_.UniformRandom(0, 1);
     float rand;
     //not sure about the normalized weight
-    rand = x * cummulative_weight[49];
+    rand = x * cumulative_weight[49];
     int index_counter2 = 0;
-    for(float j : cummulative_weight){
+    for(float j : cumulative_weight){
       if(rand <= j){
 	break;
       }
@@ -158,22 +161,8 @@ void ParticleFilter::Resample() {
   for(int i = 0; i < 50; i = i + 1){
     particles_[i].weight = 1/50;
   }
-  // Resample the particles, proportional to their weights.
-  // The current particles are in the `particles_` variable. 
-  // Create a variable to store the new particles, and when done, replace the
-  // old set of particles:
-  // vector<Particle> new_particles';
-  // During resampling: 
-  //    new_particles.push_back(...)
-  // After resampling:
-  // particles_ = new_particles;
-
-  // You will need to use the uniform random number generator provided. For
-  // example, to generate a random number between 0 and 1:
-  float x = rng_.UniformRandom(0, 1);
-  printf("Random number drawn from uniform distribution between 0 and 1: %f\n",
-         x);
 }
+
 
 void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float range_min,
@@ -193,6 +182,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
     Resample();
   } 
 }
+
 
 void ParticleFilter::Predict(const Vector2f& odom_loc,
                              const float odom_angle) {
@@ -220,6 +210,7 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   }
 }
 
+
 void ParticleFilter::Initialize(const string& map_file,
                                 const Vector2f& loc,
                                 const float angle) {
@@ -235,6 +226,7 @@ void ParticleFilter::Initialize(const string& map_file,
     particles_.push_back(p);
   }
 }
+
 
 void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr, 
                                  float* angle_ptr) const {
