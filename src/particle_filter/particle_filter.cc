@@ -55,7 +55,8 @@ config_reader::ConfigReader config_reader_({"config/particle_filter.lua"});
 ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
-    odom_initialized_(false) {}
+    odom_initialized_(false),
+    num_particles_(100) {}
 
 void ParticleFilter::GetParticles(vector<Particle>* particles) const {
   *particles = particles_;
@@ -188,14 +189,24 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // A new odometry value is available (in the odom frame)
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
+  float k1 = 1;
+  float k2 = 0.5;
+  float k3 = 0.5; 
+  float k4 = 1;
 
+  Vector2f delta_loc  = odom_loc - prev_odom_loc_;
+  float delta_angle = odom_angle - prev_odom_angle_;
+  float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
+  float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
 
-  // You will need to use the Gaussian random number generator provided. For
-  // example, to generate a random number from a Gaussian with mean 0, and
-  // standard deviation 2:
-  float x = rng_.Gaussian(0.0, 2.0);
-  printf("Random number drawn from Gaussian distribution with 0 mean and "
-         "standard deviation of 2 : %f\n", x);
+  prev_odom_loc_ = odom_loc;
+  prev_odom_angle_ = odom_angle;
+  
+  for(auto p : particles_) {
+    p.loc.x() = p.loc.x() + delta_loc.x() + rng_.Gaussian(0.0, std_loc);
+    p.loc.y() = p.loc.y() + delta_loc.y() + rng_.Gaussian(0.0, std_loc);
+    p.angle = p.angle + delta_angle + rng_.Gaussian(0.0, std_angle);
+  }
 }
 
 void ParticleFilter::Initialize(const string& map_file,
