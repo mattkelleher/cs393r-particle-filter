@@ -131,7 +131,7 @@ void ParticleFilter::Update(const vector<float>& ranges,
 }
 
 void ParticleFilter::Resample() {
-  float cumulative_weight [50];
+  float cumulative_weight [num_particles_];
   vector<Particle> new_particles;
   int index_counter1 = 0;
 
@@ -147,7 +147,7 @@ void ParticleFilter::Resample() {
     float x = rng_.UniformRandom(0, 1);
     float rand;
     //not sure about the normalized weight
-    rand = x * cumulative_weight[49];
+    rand = x * cumulative_weight[num_particles_ - 1];
     int index_counter2 = 0;
     for(float j : cumulative_weight){
       if(rand <= j){
