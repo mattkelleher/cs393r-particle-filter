@@ -56,7 +56,7 @@ ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
     odom_initialized_(false),
-    num_particles_(100),
+    num_particles_(50), //TODO tune
     update_count_(0) {}
 
 void ParticleFilter::GetParticles(vector<Particle>* particles) const {
@@ -171,7 +171,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
-  int resample_frequency = 10;
+  int resample_frequency = 10;  //TODO tune
 
   for(auto p : particles_) {
     Update(ranges, range_min, range_max, angle_min, angle_max, &p);
@@ -190,7 +190,7 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // A new odometry value is available (in the odom frame)
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
-  float k1 = 1;
+  float k1 = 1;  //TODO tune
   float k2 = 0.5;
   float k3 = 0.5; 
   float k4 = 1;
