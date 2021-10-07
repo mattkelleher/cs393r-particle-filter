@@ -164,7 +164,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
         &predicted_scan
     );
     Vector2f laser_loc;
-    laser_loc.x() = p.loc.x() + 0.2 * cos(M_PI / 180 * p.angle);
+    laser_loc.x() = p.loc.x() + 0.2 * cos(M_PI / 180 * p.angle); //0.2 is distance from base frame to laser
     laser_loc.y() = p.loc.y() + 0.2 * sin(M_PI / 180 * p.angle);
 
     for (auto s: predicted_scan) {
