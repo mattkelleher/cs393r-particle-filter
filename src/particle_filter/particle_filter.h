@@ -60,6 +60,9 @@ class ParticleFilter {
                   const Eigen::Vector2f& loc,
                   const float angle);
 
+  // Distance between two points
+  float _Distance(Eigen::Vector2f p1, Eigen::Vector2f p2);
+  
   // Return the list of particles.
   void GetParticles(std::vector<Particle>* particles) const;
 
