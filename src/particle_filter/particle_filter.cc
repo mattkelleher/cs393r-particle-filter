@@ -129,7 +129,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   // predicted point cloud.
 
   // Tunable parameters
-  const float sigma_s = 0.04; // m, Variance of LIDAR, from datasheet
+  const float sigma_s = 0.10; // m, Variance of LIDAR, from datasheet (0.04) + overestimation for robustness
   float d_short = 1; // Tunable parameter
   float d_long = 1; // Tunable parameter
   float gamma = 1; // Tunable parameter
@@ -282,6 +282,7 @@ void ParticleFilter::Initialize(const string& map_file,
   // The "set_pose" button on the GUI was clicked, or an initialization message
   // was received from the log. Initialize the particles accordingly, e.g. with
   // some distribution around the provided location and angle.
+  std::cout << "Entering Initialize function!" << std::endl;
   map_.Load(map_file);
   for(int i = 0; i < num_particles_; i++) {  // TODO most basic initalization, all particles start on top of 'initalized' location
     Particle p;
@@ -295,6 +296,7 @@ void ParticleFilter::Initialize(const string& map_file,
     //p.angle = 2 * PI * angle;
     p.angle = angle;
     p.weight = 1.0 / num_particles_;
+    std::cout << "Creating particle: " << i << " at location: " << p.loc.x() << ", " << p.loc.y() << "with angel: " << p.angle << " and weight: " << p.weight << std::endl;
     particles_.push_back(p);
   }
 }
