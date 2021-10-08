@@ -77,25 +77,26 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                                             float angle_max,
                                             vector<Vector2f>* scan_ptr) 
 {
-  std::cout << "entering GetPredictedPointCloud" << std::endl;
   vector<Vector2f>& scan = *scan_ptr;
   const float distance_base2lidar = 0.2; // From assignment 1
+  float angle_rad = angle * M_PI / 180;
   float phi;
+  
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
   // parameters.
   // This is NOT the motion model predict step: it is the prediction of the
   // expected observations, to be used for the update step.
 
-  float x_base2lidar = distance_base2lidar * cos(angle);
-  float y_base2lidar = distance_base2lidar * sin(angle);
-
+  float x_base2lidar = distance_base2lidar * cos(angle_rad);
+  float y_base2lidar = distance_base2lidar * sin(angle_rad);
+  Vector2f laser_loc(loc.x() + x_base2lidar, loc.y() + y_base2lidar);
+   
   // Note: The returned values must be set using the `scan` variable:
   scan.resize(num_ranges);    // Usually 109 scans, 108 + 1
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
   for (size_t i = 0; i < scan.size(); i++) {
     phi = (-135 + 270/(scan.size()-1)*i) * 2* M_PI / 180;
-    std::cout << "i: " << i << "/" << scan.size()-1 << std::endl;
     line2f sim_line(loc.x()+x_base2lidar+range_min*cos(phi),
                     loc.y()+y_base2lidar+range_min*sin(phi),
                     loc.x()+x_base2lidar+range_max*cos(phi),
@@ -103,8 +104,6 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
 
     for (size_t n = 0; n < map_.lines.size(); n++) {
       const line2f map_line = map_.lines[n];
-      
-      std::cout << "  n: " << n << std::endl;
       scan[i] = Vector2f(sim_line.p1.x(), sim_line.p1.y());
 
       Vector2f intersection_point; // Return variable
@@ -116,7 +115,6 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
       } 
     }
   }
-  std::cout << "exiting GetPredictedPointCloud" << std::endl;
 }
 
 void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
@@ -130,7 +128,6 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   // observations for each particle, and assign weights to the particles based
   // on the observation likelihood computed by relating the observation to the
   // predicted point cloud.
-  std::cout << "entering Update" << std::endl;
   // Tunable parameters
   const float sigma_s = 0.10; // m, Variance of LIDAR, from datasheet (0.04) + overestimation for robustness
   float d_short = 1; // Tunable parameter
@@ -198,9 +195,11 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
 void ParticleFilter::Resample() {
   float cumulative_weight [num_particles_];
   vector<Particle> new_particles;
+  
   int index_counter1 = 0;
 
   for(Particle i: particles_){
+    std::cout << "hit particle: " << index_counter1 <<  std::endl;
     if(index_counter1 == 0){
       cumulative_weight[index_counter1] = i.weight;
     } else {
@@ -208,10 +207,10 @@ void ParticleFilter::Resample() {
     }
     index_counter1 ++; 
   }
-  
   float rand = rng_.UniformRandom(0, 1);
-  for(int i = 0; i < num_particles_; i++){
-    rand = rand + i / num_particles_;
+  for(size_t i = 0; i < particles_.size(); i++){
+    std::cout << "hit2 # particles: " << num_particles_ <<  std::endl; 
+    rand = rand + float(i) / num_particles_;
     if(rand > 1) {
       rand = rand - 1;
     } 
@@ -225,9 +224,10 @@ void ParticleFilter::Resample() {
     new_particles.push_back(particles_[index_counter2]);
   }
   particles_ = new_particles;
-  for(int i = 0; i < num_particles_; i = i + 1){
+  for(size_t i = 0; i < particles_.size(); i = i + 1){
     particles_[i].weight = 1.0/num_particles_;
   }
+  std::cout << "Exiting resample" << std::endl;
 }
 
 
@@ -238,7 +238,6 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
-  std::cout << "entering ObserveLaser" << std::endl;
   int resample_frequency = 10;  //TODO tune
 
   for(auto p : particles_) {
@@ -259,7 +258,6 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // A new odometry value is available (in the odom frame)
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
-  std::cout << "entering Predict" << std::endl;
   float k1 = 1;  //TODO tune
   float k2 = 0.5;
   float k3 = 0.5; 
