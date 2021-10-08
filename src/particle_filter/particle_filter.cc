@@ -313,8 +313,9 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   float y = 0;
   float theta_x = 0;
   float theta_y = 0;
-
+  std::cout << "We are IN GetLocation!" << std::endl;
   for(auto p : particles_) {
+    std::cout << "We have particles!" << std::endl;
     x = x + p.weight * p.loc.x();
     y = y + p.weight * p.loc.y();
     theta_x = theta_x + p.weight * cos(M_PI / 180 * p.angle);
@@ -322,7 +323,8 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   } 
 
   loc = Vector2f(x, y);
-  angle = 180.0 / M_PI * atan(theta_y / theta_x);
+  angle = 180.0 / M_PI * atan2(theta_y, theta_x);
+  std::cout << "Location: (" << loc.x() << ", " << loc.y() << ") Angle: " << angle << std::endl;
 }
 
 
