@@ -311,16 +311,18 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   // variables to return them. Modify the following assignments:
   float x = 0;
   float y = 0;
-  float temp_angle = 0;
- 
+  float theta_x = 0;
+  float theta_y = 0;
+
   for(auto p : particles_) {
     x = x + p.weight * p.loc.x();
     y = y + p.weight * p.loc.y();
-    temp_angle = temp_angle + p.weight * p.angle; 
+    theta_x = theta_x + p.weight * cos(M_PI / 180 * p.angle);
+    theta_y = theta_y + p.weight * sin(M_PI / 180 * p.angle); 
   } 
 
   loc = Vector2f(x, y);
-  angle = temp_angle;
+  angle = 180.0 / M_PI * atan(theta_y / theta_x);
 }
 
 
