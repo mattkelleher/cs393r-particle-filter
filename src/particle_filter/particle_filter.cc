@@ -81,7 +81,8 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   const float distance_base2lidar = 0.2; // From assignment 1
   float angle_rad = angle * M_PI / 180;
   float phi;
-  
+  increment = M_PI / 180 * (angle_max - angle_min) / scan.size();
+
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
   // parameters.
@@ -96,11 +97,11 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   scan.resize(num_ranges);    // Usually 109 scans, 108 + 1
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
   for (size_t i = 0; i < scan.size(); i++) {
-    phi = (-135 + 270/(scan.size()-1)*i) * 2* M_PI / 180;
-    line2f sim_line(loc.x()+x_base2lidar+range_min*cos(phi),
-                    loc.y()+y_base2lidar+range_min*sin(phi),
-                    loc.x()+x_base2lidar+range_max*cos(phi),
-                    loc.y()+y_base2lidar+range_max*sin(phi));
+    phi = angle + (angle_min + i * increment);
+    line2f sim_line(laser_loc.x() + range_min * cos(phi),
+                    laser_loc.y() + range_min * sin(phi),
+                    laser_loc.x() + range_max * cos(phi),
+                    laser_loc.y() + range_max * sin(phi));
 
     for (size_t n = 0; n < map_.lines.size(); n++) {
       const line2f map_line = map_.lines[n];
