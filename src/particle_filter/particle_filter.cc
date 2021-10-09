@@ -56,7 +56,9 @@ ParticleFilter::ParticleFilter() :
     prev_odom_loc_(0, 0),
     prev_odom_angle_(0),
     odom_initialized_(false),
+    last_update_loc_(0,0),
     num_particles_(50), //TODO tune
+    scan_density_(10), 
     update_count_(0) {}
 
 float ParticleFilter::_Distance(Vector2f p1, Vector2f p2) {
@@ -96,7 +98,7 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   // Note: The returned values must be set using the `scan` variable:
   scan.resize(num_ranges);    // Usually 109 scans, 108 + 1
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
-  for (size_t i = 0; i < scan.size(); i++) {
+  for (size_t i = 0; i < scan.size(); i+=scan_density_) {
     phi = angle + (angle_min + i * increment);
     line2f sim_line(laser_loc.x() + range_min * cos(phi),
                     laser_loc.y() + range_min * sin(phi),
@@ -134,24 +136,23 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   float d_short = 1; // Tunable parameter
   float d_long = 1; // Tunable parameter
   float gamma = 1; // Tunable parameter
-
+  std::cout << "Entering Update " << std::endl;
   //Initialize variables
   vector<double>log_weights;
   vector<double>weights;
-  double log_weights_sum = 0;
+  double log_weights_max = 0;
 
-  log_weights.resize(ranges.size());
+  log_weights.resize(particles_.size());
   weights.resize(log_weights.size());
 
   for (size_t i = 0; i < log_weights.size(); ++i) {
     log_weights[i] = ranges.size() * (-log(sigma_s)-0.5*log(2*M_PI)+gamma);
   }
 
-  int n = 0;
-  int m = 0;
+  int m = 0; // particle index
+  int n = 0; // predicted_scan index
   
   for (Particle p: particles_) {
-    n = 0;
 
     vector<Vector2f> predicted_scan;
     GetPredictedPointCloud(
@@ -168,28 +169,36 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
     laser_loc.x() = p.loc.x() + 0.2 * cos(M_PI / 180 * p.angle); //0.2 is distance from base frame to laser
     laser_loc.y() = p.loc.y() + 0.2 * sin(M_PI / 180 * p.angle);
 
+    n = 0;
     for (auto s: predicted_scan) {
       float dist = _Distance(laser_loc, s);
       if (dist < range_min || dist > range_max) {
         // Do nothing
-      } else if (dist< ranges[n] - d_short) {
-        log_weights[n] += -1 * pow(d_short,2) / (2 * pow(sigma_s,2));
-      } else if (dist > ranges[n] + d_long) {
-        log_weights[n] += -1 * pow(d_long, 2) / (2 * pow(sigma_s,2));
+      } else if (dist< ranges[n*scan_density_] - d_short) {
+        log_weights[m] += -1 * pow(d_short,2) / (2 * pow(sigma_s,2));
+      } else if (dist > ranges[n*scan_density_] + d_long) {
+        log_weights[m] += -1 * pow(d_long, 2) / (2 * pow(sigma_s,2));
       } else {
-        log_weights[n] += -1 * pow(dist - ranges[n], 2) / (2 * pow(sigma_s,2));
+        log_weights[m] += -1 * pow(dist - ranges[n*scan_density_], 2) / (2 * pow(sigma_s,2));
       } 
-      log_weights_sum += log_weights[n];
-      ++n;
+      n++;
     }
-
-    for (unsigned int i = 0; i < log_weights.size(); i++) {
-      log_weights[i] = log_weights[i] / log_weights_sum;
-      weights[i] = exp(log_weights[i]);
-    }
-
-    p.weight = p.weight * weights[m];
-    ++m;
+    if(log_weights[m] > log_weights_max) {
+       log_weights_max = log_weights[m];
+    } 
+    m++;
+  }
+  
+  // Normalizing log weights and set weight value
+  double weight_sum = 0;
+  for (unsigned int i = 0; i < log_weights.size(); i++) {
+    log_weights[i] = log_weights[i] - log_weights_max;
+    weights[i] = exp(log_weights[i]);
+    weights[i] = particles_[i].weight * weights[i];
+    weight_sum += weights[i];
+  }
+  for(size_t i = 0; i < weights.size(); i++ ) {
+    particles_[i].weight = weights[i] / weight_sum;
   }
 } 
 
@@ -200,7 +209,6 @@ void ParticleFilter::Resample() {
   int index_counter1 = 0;
 
   for(Particle i: particles_){
-    std::cout << "hit particle: " << index_counter1 <<  std::endl;
     if(index_counter1 == 0){
       cumulative_weight[index_counter1] = i.weight;
     } else {
@@ -210,7 +218,6 @@ void ParticleFilter::Resample() {
   }
   float rand = rng_.UniformRandom(0, 1);
   for(size_t i = 0; i < particles_.size(); i++){
-    std::cout << "hit2 # particles: " << num_particles_ <<  std::endl; 
     rand = rand + float(i) / num_particles_;
     if(rand > 1) {
       rand = rand - 1;
@@ -241,14 +248,16 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   // Call the Update and Resample steps as necessary.
   int resample_frequency = 10;  //TODO tune
 
-  for(auto p : particles_) {
-    Update(ranges, range_min, range_max, angle_min, angle_max, &p);
-  }
-  update_count_++;
-
-  if(update_count_ == resample_frequency) {
-    update_count_ = 0;
-    Resample();
+  std::cout << "Entering Observe Laser" << std::endl;
+  if(_Distance(prev_odom_loc_, last_update_loc_) > 30000) {
+    last_update_loc_ = prev_odom_loc_;
+    Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[1]);
+    update_count_++;
+  
+    if(update_count_ == resample_frequency) {
+      update_count_ = 0;
+      Resample();
+    }
   } 
 }
 
@@ -259,24 +268,39 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // A new odometry value is available (in the odom frame)
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
-  float k1 = 1;  //TODO tune
-  float k2 = 0.5;
-  float k3 = 0.5; 
-  float k4 = 1;
-
-  Vector2f delta_loc  = odom_loc - prev_odom_loc_;
-  float delta_angle = odom_angle - prev_odom_angle_;
-  float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
-  float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
-
-  prev_odom_loc_ = odom_loc;
-  prev_odom_angle_ = odom_angle;
   
-  for(auto p : particles_) {
-    p.loc.x() = p.loc.x() + delta_loc.x() + rng_.Gaussian(0.0, std_loc);
-    p.loc.y() = p.loc.y() + delta_loc.y() + rng_.Gaussian(0.0, std_loc);
-    p.angle = p.angle + delta_angle + rng_.Gaussian(0.0, std_angle);
+  //float k1 = 0.001;  //TODO tune
+  //float k2 = 0.0005;
+  //float k3 = 0.0005; 
+  //float k4 = 0.001;
+
+  std::cout << "Entering Predict" << std::endl;
+  Vector2f delta_loc(0,0);
+  delta_loc.x()  = abs(odom_loc.x() - prev_odom_loc_.x());
+  delta_loc.y()  = abs(odom_loc.y() - prev_odom_loc_.y());
+
+  float delta_angle = odom_angle - prev_odom_angle_;
+  //float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
+  //float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
+
+  std::cout << "Delta Loc: (" << delta_loc.x() << ", " << delta_loc.y() << ")" << std::endl;
+  std::cout << "Odom Loc: (" << odom_loc.x() << ", " << odom_loc.y() << ")" << std::endl;
+  std::cout << "prev_odom Loc: (" << prev_odom_loc_.x() << ", " << prev_odom_loc_.y() << ")" << std::endl;
+  
+  for(size_t i = 0; i < particles_.size(); i++) {
+    if(i == 0){
+      std::cout << "OLD P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
+    } 
+    particles_[i].loc.x() += delta_loc.x(); //+ rng_.Gaussian(0.0, std_loc);
+    particles_[i].loc.y() += delta_loc.y(); //+ rng_.Gaussian(0.0, std_loc);
+    particles_[i].angle += delta_angle; // + rng_.Gaussian(0.0, std_angle);
+    if(i == 0){
+      std::cout << "P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
+    } 
   }
+  prev_odom_loc_.x() = odom_loc.x();
+  prev_odom_loc_.y() = odom_loc.y();
+  prev_odom_angle_ = odom_angle;
 }
 
 
@@ -288,7 +312,11 @@ void ParticleFilter::Initialize(const string& map_file,
   // some distribution around the provided location and angle.
   std::cout << "Entering Initialize function!" << std::endl;
   map_.Load(map_file);
-
+  
+  last_update_loc_ = loc;
+  prev_odom_loc_ = loc;
+  prev_odom_angle_ = angle;
+ 
   // Remove all previous particles
   std::cout << "Removing old particles" << std::endl; 
   while(particles_.size() > 0) {

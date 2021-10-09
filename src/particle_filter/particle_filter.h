@@ -105,9 +105,13 @@ class ParticleFilter {
   Eigen::Vector2f prev_odom_loc_;
   float prev_odom_angle_;
   bool odom_initialized_;
-
+  
+  // Location of last update
+  Eigen::Vector2f last_update_loc_;
   // Number of particles in particle cloud
   int num_particles_;
+  // Number of scans skipped 
+  int scan_density_;
   // Number of updates since last resample
   int update_count_;
 };
