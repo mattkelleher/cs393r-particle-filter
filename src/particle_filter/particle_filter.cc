@@ -81,7 +81,7 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   const float distance_base2lidar = 0.2; // From assignment 1
   float angle_rad = angle * M_PI / 180;
   float phi;
-  increment = M_PI / 180 * (angle_max - angle_min) / scan.size();
+  float increment = M_PI / 180 * (angle_max - angle_min) / scan.size();
 
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
@@ -288,6 +288,13 @@ void ParticleFilter::Initialize(const string& map_file,
   // some distribution around the provided location and angle.
   std::cout << "Entering Initialize function!" << std::endl;
   map_.Load(map_file);
+
+  // Remove all previous particles
+  std::cout << "Removing old particles" << std::endl; 
+  while(particles_.size() > 0) {
+    particles_.pop_back();
+  }
+  
   for(int i = 0; i < num_particles_; i++) {  // TODO most basic initalization, all particles start on top of 'initalized' location
     Particle p;
     //following are the randomized loc and angle, picking random points in the circle that is centered at the p.loc
@@ -300,7 +307,7 @@ void ParticleFilter::Initialize(const string& map_file,
     //p.angle = 2 * PI * angle;
     p.angle = angle;
     p.weight = 1.0 / num_particles_;
-    std::cout << "Creating particle: " << i << " at location: " << p.loc.x() << ", " << p.loc.y() << "with angel: " << p.angle << " and weight: " << p.weight << std::endl;
+    std::cout << "Creating particle: " << i << " at location: " << p.loc.x() << ", " << p.loc.y() << " with angel: " << p.angle << " and weight: " << p.weight << std::endl;
     particles_.push_back(p);
   }
 }
