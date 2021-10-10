@@ -163,8 +163,8 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
         &predicted_scan
     );
     Vector2f laser_loc;
-    laser_loc.x() = p.loc.x() + 0.2 * cos(M_PI / 180 * p.angle); //0.2 is distance from base frame to laser
-    laser_loc.y() = p.loc.y() + 0.2 * sin(M_PI / 180 * p.angle);
+    laser_loc.x() = p.loc.x() + 0.2 * cos(p.angle); //0.2 is distance from base frame to laser
+    laser_loc.y() = p.loc.y() + 0.2 * sin(p.angle);
    
     n = 0;
     for (auto s: predicted_scan) {
@@ -282,16 +282,19 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
 
   std::cout << "Entering Predict" << std::endl;
   Vector2f delta_loc(0,0);
-  delta_loc.x()  = abs(odom_loc.x() - prev_odom_loc_.x());
-  delta_loc.y()  = abs(odom_loc.y() - prev_odom_loc_.y());
+  delta_loc.x()  = odom_loc.x() - prev_odom_loc_.x();
+  delta_loc.y()  = odom_loc.y() - prev_odom_loc_.y();
 
   float delta_angle = odom_angle - prev_odom_angle_;
   //float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
   //float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
-
   std::cout << "Delta Loc: (" << delta_loc.x() << ", " << delta_loc.y() << ")" << std::endl;
   std::cout << "Odom Loc: (" << odom_loc.x() << ", " << odom_loc.y() << ")" << std::endl;
   std::cout << "prev_odom Loc: (" << prev_odom_loc_.x() << ", " << prev_odom_loc_.y() << ")" << std::endl;
+  
+  std::cout << "Delta Angle: (" << delta_angle << std::endl;
+  std::cout << "Odom angle: "<< odom_angle << std::endl;
+  std::cout << "prev_odom angle: " << prev_odom_angle_ << std::endl;
   
   for(size_t i = 0; i < particles_.size(); i++) {
     if(i == 0){
@@ -320,8 +323,8 @@ void ParticleFilter::Initialize(const string& map_file,
   map_.Load(map_file);
   
   last_update_loc_ = loc;
-  prev_odom_loc_ = loc;
-  prev_odom_angle_ = angle;
+  //prev_odom_loc_ = loc;
+  //prev_odom_angle_ = angle;
  
   // Remove all previous particles
   std::cout << "Removing old particles" << std::endl; 
@@ -361,12 +364,12 @@ void ParticleFilter::GetLocation(Eigen::Vector2f* loc_ptr,
   for(auto p : particles_) {
     x = x + p.weight * p.loc.x();
     y = y + p.weight * p.loc.y();
-    theta_x = theta_x + p.weight * cos(M_PI / 180 * p.angle);
-    theta_y = theta_y + p.weight * sin(M_PI / 180 * p.angle); 
+    theta_x = theta_x + p.weight * cos(p.angle);
+    theta_y = theta_y + p.weight * sin(p.angle); 
   } 
 
   loc = Vector2f(x, y);
-  angle = 180.0 / M_PI * atan2(theta_y, theta_x);
+  angle = atan2(theta_y, theta_x);
   std::cout << "Location: (" << loc.x() << ", " << loc.y() << ") Angle: " << angle << std::endl;
 }
 
