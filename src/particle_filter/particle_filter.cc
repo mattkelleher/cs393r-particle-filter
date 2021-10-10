@@ -82,7 +82,6 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   vector<Vector2f>& scan = *scan_ptr;
   const float distance_base2lidar = 0.2; // From assignment 1
   float phi;
-  float increment = (angle_max - angle_min) / scan.size();
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
   // parameters.
@@ -95,19 +94,22 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
    
   // Note: The returned values must be set using the `scan` variable:
   scan.resize(num_ranges / scan_density_);    // Usually 109 scans, 108 + 1
+  float increment = (angle_max - angle_min) / scan.size();
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
-  for (size_t i = 0; i < scan.size(); i+=scan_density_) {
+  for (size_t i = 0; i < scan.size(); i++) {
     phi = angle + (angle_min + i * increment);
-    std::cout << "*************Laser loc: (" << laser_loc.x() << ", " << laser_loc.y() <<  ")   angle_min: " << angle_min << std::endl; 
     line2f sim_line(Vector2f(laser_loc.x() + range_min * cos(phi), laser_loc.y() + range_min * sin(phi)),
                     Vector2f(laser_loc.x() + range_max * cos(phi), laser_loc.y() + range_max * sin(phi))
                     );
 
     scan[i] = sim_line.p1;
-    std::cout << "*************Sim line 0 (" << sim_line.p0.x() << ", " << sim_line.p0.y() <<  ")" << std::endl; 
-    std::cout << "*************Sim line 1 (" << sim_line.p1.x() << ", " << sim_line.p1.y() <<  ")" << std::endl; 
-    std::cout << "*************s[" << i << "] loc: (" << scan[i].x() << ", " << scan[i].y() <<  ")" << std::endl; 
-    std::cout << "*************Laser loc to s init Dist: " << _Distance(laser_loc, scan[i]) <<  "/" << range_max << std::endl; 
+    if(i == 1) {
+      std::cout << "*************Laser loc: (" << laser_loc.x() << ", " << laser_loc.y() <<  ")   scan size: " << scan.size() << std::endl; 
+      std::cout << "*************Sim line 0 (" << sim_line.p0.x() << ", " << sim_line.p0.y() <<  ")" << std::endl; 
+      std::cout << "*************Sim line 1 (" << sim_line.p1.x() << ", " << sim_line.p1.y() <<  ")" << std::endl; 
+      std::cout << "*************s[" << i << "] loc: (" << scan[i].x() << ", " << scan[i].y() <<  ")" << std::endl; 
+      std::cout << "*************Laser loc to s init Dist: " << _Distance(laser_loc, scan[i]) <<  "/" << range_max << std::endl; 
+    }
     for (size_t n = 0; n < map_.lines.size(); n++) {
       const line2f map_line = map_.lines[n];
 
@@ -189,7 +191,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
       std::cout << "*****Log weight: " << log_weights[m] << std::endl;
       std::cout << "*****Start weight: " << particles_[0].weight << std::endl;
     }
-    if(log_weights[m] > log_weights_max) {
+    if(abs(log_weights[m]) > log_weights_max) {
        log_weights_max = log_weights[m];
        std::cout << "***** NEW MAX !!: " << log_weights_max << std::endl;
     } 
@@ -199,6 +201,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
 
   // Normalizing log weights and set weight value
   double weight_sum = 0;
+  std::cout << "MAX LOG WEIGHT: " << log_weights_max << std::endl;
   for (unsigned int i = 0; i < log_weights.size(); i++) {
     log_weights[i] = log_weights[i] - log_weights_max;
     weights[i] = exp(log_weights[i]);
@@ -208,7 +211,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   for(size_t i = 0; i < weights.size(); i++ ) {
     particles_[i].weight = weights[i] / weight_sum;
     if(i == 0) {    
-      std::cout << "***** Normalized Log weight: " << log_weights[m] << std::endl;
+      std::cout << "***** Normalized Log weight: " << log_weights[i] << std::endl;
       std::cout << "*****END weight: " << particles_[0].weight << std::endl;
     }
   }
