@@ -96,7 +96,7 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   Vector2f laser_loc(loc.x() + x_base2lidar, loc.y() + y_base2lidar);
    
   // Note: The returned values must be set using the `scan` variable:
-  scan.resize(num_ranges);    // Usually 109 scans, 108 + 1
+  scan.resize(num_ranges / scan_density_);    // Usually 109 scans, 108 + 1
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
   for (size_t i = 0; i < scan.size(); i+=scan_density_) {
     phi = angle + (angle_min + i * increment);
@@ -146,7 +146,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   weights.resize(log_weights.size());
 
   for (size_t i = 0; i < log_weights.size(); ++i) {
-    log_weights[i] = ranges.size() * (-log(sigma_s)-0.5*log(2*M_PI)+gamma);
+    log_weights[i] = ranges.size() / scan_density_ * (-log(sigma_s)-0.5*log(2*M_PI) + gamma);
   }
 
   int m = 0; // particle index
@@ -168,13 +168,14 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
     Vector2f laser_loc;
     laser_loc.x() = p.loc.x() + 0.2 * cos(M_PI / 180 * p.angle); //0.2 is distance from base frame to laser
     laser_loc.y() = p.loc.y() + 0.2 * sin(M_PI / 180 * p.angle);
-
+   
     n = 0;
     for (auto s: predicted_scan) {
-      float dist = _Distance(laser_loc, s);
+      double dist = _Distance(laser_loc, s);
+      std::cout << "**********Laser loc to s Dist: " << dist <<  "/" << range_max << std::endl; 
       if (dist < range_min || dist > range_max) {
         // Do nothing
-      } else if (dist< ranges[n*scan_density_] - d_short) {
+      } else if (dist < ranges[n*scan_density_] - d_short) {
         log_weights[m] += -1 * pow(d_short,2) / (2 * pow(sigma_s,2));
       } else if (dist > ranges[n*scan_density_] + d_long) {
         log_weights[m] += -1 * pow(d_long, 2) / (2 * pow(sigma_s,2));
@@ -183,12 +184,18 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
       } 
       n++;
     }
+    if(m == 1) {
+      std::cout << "*****Log weight: " << log_weights[m] << std::endl;
+      std::cout << "*****Start weight: " << particles_[0].weight << std::endl;
+    }
     if(log_weights[m] > log_weights_max) {
        log_weights_max = log_weights[m];
+       std::cout << "***** NEW MAX !!: " << log_weights_max << std::endl;
     } 
     m++;
-  }
-  
+ }  
+
+
   // Normalizing log weights and set weight value
   double weight_sum = 0;
   for (unsigned int i = 0; i < log_weights.size(); i++) {
@@ -199,6 +206,10 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   }
   for(size_t i = 0; i < weights.size(); i++ ) {
     particles_[i].weight = weights[i] / weight_sum;
+    if(i == 0) {    
+      std::cout << "***** Normalized Log weight: " << log_weights[m] << std::endl;
+      std::cout << "*****END weight: " << particles_[0].weight << std::endl;
+    }
   }
 } 
 
@@ -249,7 +260,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   int resample_frequency = 10;  //TODO tune
 
   std::cout << "Entering Observe Laser" << std::endl;
-  if(_Distance(prev_odom_loc_, last_update_loc_) > 30000) {
+  if(_Distance(prev_odom_loc_, last_update_loc_) > 0.03) {
     last_update_loc_ = prev_odom_loc_;
     Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[1]);
     update_count_++;
