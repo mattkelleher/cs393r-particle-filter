@@ -103,13 +103,6 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
                     );
 
     scan[i] = sim_line.p1;
-    if(i == 1) {
-      std::cout << "*************Laser loc: (" << laser_loc.x() << ", " << laser_loc.y() <<  ")   scan size: " << scan.size() << std::endl; 
-      std::cout << "*************Sim line 0 (" << sim_line.p0.x() << ", " << sim_line.p0.y() <<  ")" << std::endl; 
-      std::cout << "*************Sim line 1 (" << sim_line.p1.x() << ", " << sim_line.p1.y() <<  ")" << std::endl; 
-      std::cout << "*************s[" << i << "] loc: (" << scan[i].x() << ", " << scan[i].y() <<  ")" << std::endl; 
-      std::cout << "*************Laser loc to s init Dist: " << _Distance(laser_loc, scan[i]) <<  "/" << range_max << std::endl; 
-    }
     for (size_t n = 0; n < map_.lines.size(); n++) {
       const line2f map_line = map_.lines[n];
 
@@ -193,7 +186,6 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
     }
     if(abs(log_weights[m]) > log_weights_max) {
        log_weights_max = log_weights[m];
-       std::cout << "***** NEW MAX !!: " << log_weights_max << std::endl;
     } 
     m++;
  }  
@@ -201,7 +193,6 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
 
   // Normalizing log weights and set weight value
   double weight_sum = 0;
-  std::cout << "MAX LOG WEIGHT: " << log_weights_max << std::endl;
   for (unsigned int i = 0; i < log_weights.size(); i++) {
     log_weights[i] = log_weights[i] - log_weights_max;
     weights[i] = exp(log_weights[i]);
