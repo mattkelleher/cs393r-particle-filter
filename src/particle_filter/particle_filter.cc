@@ -81,18 +81,16 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
 {
   vector<Vector2f>& scan = *scan_ptr;
   const float distance_base2lidar = 0.2; // From assignment 1
-  float angle_rad = angle * M_PI / 180;
   float phi;
-  float increment = M_PI / 180 * (angle_max - angle_min) / scan.size();
-
+  float increment = (angle_max - angle_min) / scan.size();
   // Compute what the predicted point cloud would be, if the car was at the pose
   // loc, angle, with the sensor characteristics defined by the provided
   // parameters.
   // This is NOT the motion model predict step: it is the prediction of the
   // expected observations, to be used for the update step.
 
-  float x_base2lidar = distance_base2lidar * cos(angle_rad);
-  float y_base2lidar = distance_base2lidar * sin(angle_rad);
+  float x_base2lidar = distance_base2lidar * cos(angle);
+  float y_base2lidar = distance_base2lidar * sin(angle);
   Vector2f laser_loc(loc.x() + x_base2lidar, loc.y() + y_base2lidar);
    
   // Note: The returned values must be set using the `scan` variable:
@@ -100,14 +98,18 @@ void ParticleFilter::GetPredictedPointCloud(const Vector2f& loc,
   // Fill in the entries of scan using array writes, e.g. scan[i] = ...
   for (size_t i = 0; i < scan.size(); i+=scan_density_) {
     phi = angle + (angle_min + i * increment);
-    line2f sim_line(laser_loc.x() + range_min * cos(phi),
-                    laser_loc.y() + range_min * sin(phi),
-                    laser_loc.x() + range_max * cos(phi),
-                    laser_loc.y() + range_max * sin(phi));
+    std::cout << "*************Laser loc: (" << laser_loc.x() << ", " << laser_loc.y() <<  ")   angle_min: " << angle_min << std::endl; 
+    line2f sim_line(Vector2f(laser_loc.x() + range_min * cos(phi), laser_loc.y() + range_min * sin(phi)),
+                    Vector2f(laser_loc.x() + range_max * cos(phi), laser_loc.y() + range_max * sin(phi))
+                    );
 
+    scan[i] = sim_line.p1;
+    std::cout << "*************Sim line 0 (" << sim_line.p0.x() << ", " << sim_line.p0.y() <<  ")" << std::endl; 
+    std::cout << "*************Sim line 1 (" << sim_line.p1.x() << ", " << sim_line.p1.y() <<  ")" << std::endl; 
+    std::cout << "*************s[" << i << "] loc: (" << scan[i].x() << ", " << scan[i].y() <<  ")" << std::endl; 
+    std::cout << "*************Laser loc to s init Dist: " << _Distance(laser_loc, scan[i]) <<  "/" << range_max << std::endl; 
     for (size_t n = 0; n < map_.lines.size(); n++) {
       const line2f map_line = map_.lines[n];
-      scan[i] = Vector2f(sim_line.p1.x(), sim_line.p1.y());
 
       Vector2f intersection_point; // Return variable
       bool intersects = map_line.Intersection(sim_line, &intersection_point);
@@ -172,7 +174,6 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
     n = 0;
     for (auto s: predicted_scan) {
       double dist = _Distance(laser_loc, s);
-      std::cout << "**********Laser loc to s Dist: " << dist <<  "/" << range_max << std::endl; 
       if (dist < range_min || dist > range_max) {
         // Do nothing
       } else if (dist < ranges[n*scan_density_] - d_short) {
