@@ -275,10 +275,10 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
   
-  //float k1 = 0.001;  //TODO tune
-  //float k2 = 0.0005;
-  //float k3 = 0.0005; 
-  //float k4 = 0.001;
+  float k1 = 0.001;  //TODO tune
+  float k2 = 0.0005;
+  float k3 = 0.0005; 
+  float k4 = 0.001;
 
   std::cout << "Entering Predict" << std::endl;
   Vector2f delta_loc(0,0);
@@ -286,8 +286,8 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   delta_loc.y()  = odom_loc.y() - prev_odom_loc_.y();
 
   float delta_angle = odom_angle - prev_odom_angle_;
-  //float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
-  //float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
+  float std_loc = k1 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k2 * abs(delta_angle);
+  float std_angle = k3 * sqrt(pow(delta_loc.x(), 2) + pow(delta_loc.y(), 2)) + k4 * abs(delta_angle);
   std::cout << "Delta Loc: (" << delta_loc.x() << ", " << delta_loc.y() << ")" << std::endl;
   std::cout << "Odom Loc: (" << odom_loc.x() << ", " << odom_loc.y() << ")" << std::endl;
   std::cout << "prev_odom Loc: (" << prev_odom_loc_.x() << ", " << prev_odom_loc_.y() << ")" << std::endl;
@@ -300,9 +300,9 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
     if(i == 0){
       std::cout << "OLD P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
     } 
-    particles_[i].loc.x() += delta_loc.x(); //+ rng_.Gaussian(0.0, std_loc);
-    particles_[i].loc.y() += delta_loc.y(); //+ rng_.Gaussian(0.0, std_loc);
-    particles_[i].angle += delta_angle; // + rng_.Gaussian(0.0, std_angle);
+    particles_[i].loc.x() += delta_loc.x() + rng_.Gaussian(0.0, std_loc);
+    particles_[i].loc.y() += delta_loc.y() + rng_.Gaussian(0.0, std_loc);
+    particles_[i].angle += delta_angle + rng_.Gaussian(0.0, std_angle);
     if(i == 0){
       std::cout << "P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
     } 
@@ -322,7 +322,7 @@ void ParticleFilter::Initialize(const string& map_file,
   std::cout << "Entering Initialize function!" << std::endl;
   map_.Load(map_file);
   
-  last_update_loc_ = loc;
+  last_update_loc_ = loc; //TODO is this wrong
   //prev_odom_loc_ = loc;
   //prev_odom_angle_ = angle;
  
