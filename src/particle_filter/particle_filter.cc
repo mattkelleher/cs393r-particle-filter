@@ -130,8 +130,8 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   // predicted point cloud.
   // Tunable parameters
   const float sigma_s = 0.10; // m, Variance of LIDAR, from datasheet (0.04) + overestimation for robustness
-  float d_short = 1; // Tunable parameter
-  float d_long = 1; // Tunable parameter
+  float d_short = 0.5; // Tunable parameter
+  float d_long = 0.5; // Tunable parameter
   float gamma = 0.10; // Tunable parameter
   std::cout << "Entering Update " << std::endl;
   //Initialize variables
@@ -252,10 +252,10 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
                                   float angle_max) {
   // A new laser scan observation is available (in the laser frame)
   // Call the Update and Resample steps as necessary.
-  int resample_frequency = 10;  //TODO tune
+  int resample_frequency = 5;  //TODO tune
 
   std::cout << "Entering Observe Laser" << std::endl;
-  if(_Distance(prev_odom_loc_, last_update_loc_) > 0.03) {
+  if(_Distance(prev_odom_loc_, last_update_loc_) > 0.02) {
     last_update_loc_ = prev_odom_loc_;
     Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[1]);
     update_count_++;
@@ -277,8 +277,8 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   
   float k1 = 0.05;  //TODO tune
   float k2 = 0.025; 
-  float k3 = 0.025; 
-  float k4 = 0.05;
+  float k3 = 0.10; 
+  float k4 = 0.35;
 
   std::cout << "Entering Predict" << std::endl;
   
