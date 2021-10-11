@@ -181,8 +181,6 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
       n++;
     }
     if(m == 1) {
-      std::cout << "*****Log weight: " << log_weights[m] << std::endl;
-      std::cout << "*****Start weight: " << particles_[0].weight << std::endl;
     }
     if(abs(log_weights[m]) > log_weights_max) {
        log_weights_max = log_weights[m];
@@ -202,8 +200,6 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   for(size_t i = 0; i < weights.size(); i++ ) {
     particles_[i].weight = weights[i] / weight_sum;
     if(i == 0) {    
-      std::cout << "***** Normalized Log weight: " << log_weights[i] << std::endl;
-      std::cout << "*****END weight: " << particles_[0].weight << std::endl;
     }
   }
 } 
@@ -294,17 +290,10 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   float std_loc = k1 * sqrt(pow(robot_delta_loc.x(), 2) + pow(robot_delta_loc.y(), 2)) + k2 * abs(robot_delta_angle);
   float std_angle = k3 * sqrt(pow(robot_delta_loc.x(), 2) + pow(robot_delta_loc.y(), 2)) + k4 * abs(robot_delta_angle);
 
-  std::cout << "Delta Loc: (" << robot_delta_loc.x() << ", " << robot_delta_loc.y() << ")" << std::endl;
-  std::cout << "Odom Loc: (" << odom_loc.x() << ", " << odom_loc.y() << ")" << std::endl;
-  std::cout << "prev_odom Loc: (" << prev_odom_loc_.x() << ", " << prev_odom_loc_.y() << ")" << std::endl;
   
-  std::cout << "Delta Angle: " << robot_delta_angle << std::endl;
-  std::cout << "Odom angle: "<< odom_angle << std::endl;
-  std::cout << "prev_odom angle: " << prev_odom_angle_ << std::endl;
   
   for(size_t i = 0; i < particles_.size(); i++) {
     if(i == 0){
-      std::cout << "OLD P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
     } 
     robot_delta_loc.x() += rng_.Gaussian(0.0, std_loc); 
     robot_delta_loc.y() += rng_.Gaussian(0.0, std_loc); 
@@ -313,7 +302,6 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
     
     particles_[i].angle += robot_delta_angle + rng_.Gaussian(0.0, std_angle);
     if(i == 0){
-      std::cout << "P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
     } 
   }
   prev_odom_loc_.x() = odom_loc.x();
@@ -353,7 +341,6 @@ void ParticleFilter::Initialize(const string& map_file,
     //p.angle = 2 * PI * angle;
     p.angle = angle;
     p.weight = 1.0 / num_particles_;
-    std::cout << "Creating particle: " << i << " at location: " << p.loc.x() << ", " << p.loc.y() << " with angel: " << p.angle << " and weight: " << p.weight << std::endl;
     particles_.push_back(p);
   }
 }
