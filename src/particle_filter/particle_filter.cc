@@ -132,7 +132,7 @@ void ParticleFilter::Update(const vector<float>& ranges, // Laser scans
   const float sigma_s = 0.10; // m, Variance of LIDAR, from datasheet (0.04) + overestimation for robustness
   float d_short = 1; // Tunable parameter
   float d_long = 1; // Tunable parameter
-  float gamma = 1; // Tunable parameter
+  float gamma = 0.10; // Tunable parameter
   std::cout << "Entering Update " << std::endl;
   //Initialize variables
   vector<double>log_weights;
@@ -255,7 +255,7 @@ void ParticleFilter::ObserveLaser(const vector<float>& ranges,
   int resample_frequency = 10;  //TODO tune
 
   std::cout << "Entering Observe Laser" << std::endl;
-  if(_Distance(prev_odom_loc_, last_update_loc_) > 30000) {
+  if(_Distance(prev_odom_loc_, last_update_loc_) > 0.03) {
     last_update_loc_ = prev_odom_loc_;
     Update(ranges, range_min, range_max, angle_min, angle_max, &particles_[1]);
     update_count_++;
@@ -275,15 +275,20 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
   // Implement the motion model predict step here, to propagate the particles
   // forward based on odometry.
   
-  float k1 = 0.0001;  //TODO tune
-  float k2 = 0.00005;
-  float k3 = 0.00005; 
-  float k4 = 0.0001;
+  float k1 = 0.05;  //TODO tune
+  float k2 = 0.025; 
+  float k3 = 0.025; 
+  float k4 = 0.05;
 
   std::cout << "Entering Predict" << std::endl;
+  
+  Vector2f delta_odom(0,0);
+  delta_odom.x() = odom_loc.x() - prev_odom_loc_.x();
+  delta_odom.y() = odom_loc.y() - prev_odom_loc_.y();
+
   Vector2f robot_delta_loc(0,0);
-  robot_delta_loc.x()  = odom_loc.x() - prev_odom_loc_.x();
-  robot_delta_loc.y()  = odom_loc.y() - prev_odom_loc_.y();
+  robot_delta_loc.x()  = delta_odom.x() * cos(prev_odom_angle_) + delta_odom.y() * sin(prev_odom_angle_);
+  robot_delta_loc.y()  = delta_odom.y() * cos(prev_odom_angle_) - delta_odom.x() * sin(prev_odom_angle_);
   float robot_delta_angle = odom_angle - prev_odom_angle_;
 
   float std_loc = k1 * sqrt(pow(robot_delta_loc.x(), 2) + pow(robot_delta_loc.y(), 2)) + k2 * abs(robot_delta_angle);
@@ -301,8 +306,8 @@ void ParticleFilter::Predict(const Vector2f& odom_loc,
     if(i == 0){
       std::cout << "OLD P Loc: (" << particles_[i].loc.x() << ", " << particles_[i].loc.y() << ") Angle: " << particles_[i].angle << std::endl;
     } 
-    robot_delta_loc.x() += rng_.Gaussian(0.0, std_loc);
-    robot_delta_loc.y() += rng_.Gaussian(0.0, std_loc);
+    robot_delta_loc.x() += rng_.Gaussian(0.0, std_loc); 
+    robot_delta_loc.y() += rng_.Gaussian(0.0, std_loc); 
     particles_[i].loc.x() += (robot_delta_loc.x() * cos(particles_[i].angle) - robot_delta_loc.y() * sin(particles_[i].angle)); 
     particles_[i].loc.y() += (robot_delta_loc.x() * sin(particles_[i].angle) + robot_delta_loc.y() * cos(particles_[i].angle));
     
@@ -326,7 +331,7 @@ void ParticleFilter::Initialize(const string& map_file,
   std::cout << "Entering Initialize function!" << std::endl;
   map_.Load(map_file);
   
-  last_update_loc_ = loc; //TODO is this wrong
+  //last_update_loc_ = loc; //TODO is this wrong
   //prev_odom_loc_ = loc;
   //prev_odom_angle_ = angle;
  
